@@ -35,7 +35,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .tb{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:620px}
 th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--ln);font-size:14px}th{color:var(--mu);font-size:12px}
 .tag{display:inline-block;background:var(--ac2);color:var(--ac);border-radius:20px;padding:1px 9px;font-size:12px;margin:0 3px 3px 0;font-weight:600}
-.receita{color:var(--rc)}.despesa{color:var(--ds)}.investimento{color:var(--iv)}
+.receita{color:var(--rc)}.despesa{color:var(--ds)}.investimento,.resgate{color:var(--iv)}
 .bar{height:8px;background:var(--bg);border-radius:6px;overflow:hidden;margin:4px 0 10px}.bar i{display:block;height:100%;background:var(--ac)}
 .chips{display:flex;gap:6px;flex-wrap:wrap}.chips label{flex-direction:row;align-items:center;gap:4px;font-size:13px;color:var(--tx);background:var(--bg);border:1px solid var(--ln);border-radius:20px;padding:3px 10px}
 .mon{display:flex;gap:10px;align-items:end;height:130px}.mon div{flex:1;text-align:center;font-size:11px;color:var(--mu)}
@@ -73,15 +73,15 @@ td[data-l="Tags"]:empty{display:none}
 const KEY='financas-v1',$=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const R=v=>(+v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const DEF={tx:[],goals:[],budgets:{},rules:{},
-cats:{despesa:['Moradia','Mercado','Transporte','Saúde','Lazer','Educação','Contas fixas','Outros'],receita:['Salário','Freelance','Rendimentos','Outros'],investimento:['Aporte']},
+const DEF={tx:[],goals:[],budgets:{},rules:{},prods:[{tag:'Renda fixa',cdi:101.5}],cdiAA:13.65,
+cats:{despesa:['Moradia','Mercado','Transporte','Saúde','Lazer','Educação','Contas fixas','Outros'],receita:['Salário','Freelance','Rendimentos','Outros'],investimento:['Aporte'],resgate:['Resgate']},
 tags:['Renda fixa','Ações','FIIs','Cripto','Reserva de emergência','Exterior'],accs:['Conta corrente','Cartão de crédito','Dinheiro','Corretora']};
 let S=structuredClone(DEF),USER;
-const save=()=>{if(USER&&window.FB)FB.saveCfg({cats:S.cats,tags:S.tags,accs:S.accs,budgets:S.budgets,goals:S.goals,rules:S.rules})};
+const save=()=>{if(USER&&window.FB)FB.saveCfg({cats:S.cats,tags:S.tags,accs:S.accs,budgets:S.budgets,goals:S.goals,rules:S.rules,prods:S.prods,cdiAA:S.cdiAA})};
 const now=new Date(),ym=d=>d.slice(0,7),today=now.toISOString().slice(0,10);
 let tab='resumo',M=today.slice(0,7),F={q:'',type:'',cat:'',tag:'',acc:'',m:''},edit=null,itag='';
 const TABS=[['resumo','Resumo','Resumo','📊'],['lanc','Lançamentos','Lançam.','🧾'],['inv','Investimentos','Invest.','📈'],['orc','Orçamento','Orçam.','🎯'],['metas','Metas','Metas','🏁'],['cfg','Ajustes','Ajustes','⚙️']];
-const TN={receita:'Receita',despesa:'Despesa',investimento:'Investimento'};
+const TN={receita:'Receita',despesa:'Despesa',investimento:'Investimento',resgate:'Resgate'};
 const sum=(a,t)=>a.filter(x=>x.type===t).reduce((s,x)=>s+x.amount,0);
 const opts=(arr,sel,all)=>(all!==undefined?`<option value="">${all}</option>`:'')+arr.map(o=>`<option ${o===sel?'selected':''}>${esc(o)}</option>`).join('');
 function go(t){IMP=null;tab=t;draw()}
@@ -93,7 +93,7 @@ function draw(){
 }
 const monthPick=()=>`<label>Mês<input type="month" value="${M}" onchange="M=this.value||M;draw()"></label>`;
 function resumo(){
- const t=S.tx.filter(x=>ym(x.date)===M),r=sum(t,'receita'),d=sum(t,'despesa'),i=sum(t,'investimento');
+ const t=S.tx.filter(x=>ym(x.date)===M),r=sum(t,'receita'),d=sum(t,'despesa'),i=sum(t,'investimento'),rg=sum(t,'resgate');
  const cats={};t.filter(x=>x.type==='despesa').forEach(x=>cats[x.cat]=(cats[x.cat]||0)+x.amount);
  const cl=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
  let mons=[];for(let k=5;k>=0;k--){const dt=new Date(now.getFullYear(),now.getMonth()-k,1),key=dt.toISOString().slice(0,7);
@@ -104,8 +104,8 @@ function resumo(){
  return `<div class="row">${monthPick()}</div>
  <div class="grid"><div class="kpi" style="border-left-color:var(--rc)"><small>Receitas</small><b class="receita">${R(r)}</b></div>
  <div class="kpi" style="border-left-color:var(--ds)"><small>Despesas</small><b class="despesa">${R(d)}</b></div>
- <div class="kpi" style="border-left-color:var(--iv)"><small>Investido</small><b class="investimento">${R(i)}</b></div>
- <div class="kpi" style="border-left-color:var(--ac)"><small>Saldo do mês</small><b>${R(r-d-i)}</b></div></div>
+ <div class="kpi" style="border-left-color:var(--iv)"><small>Investido</small><b class="investimento">${R(i)}</b>${rg?`<small>resgates: ${R(rg)}</small>`:''}</div>
+ <div class="kpi" style="border-left-color:var(--ac)"><small>Saldo do mês</small><b>${R(r-d-i+rg)}</b></div></div>
  ${over.length?`<div class="card" style="border-color:var(--wn)"><b style="color:var(--wn)">Atenção:</b> orçamento estourado em ${over.map(([c])=>esc(c)).join(', ')}.</div>`:''}
  <div class="two"><div class="card"><h2>Despesas por categoria</h2>${cl.length?cl.map(([c,v])=>`<div>${esc(c)} <b style="float:right">${R(v)}</b><div class="bar"><i style="width:${v/d*100}%;background:var(--ds)"></i></div></div>`).join(''):'<div class="empty">Nenhuma despesa neste mês.</div>'}</div>
  <div class="card"><h2>Últimos 6 meses</h2><div class="mon">${mons.map(m=>`<div><div class="p"><i title="Receitas ${R(m.r)}" style="height:${m.r/mx*100}%;background:var(--rc)"></i><i title="Despesas ${R(m.d)}" style="height:${m.d/mx*100}%;background:var(--ds)"></i></div>${m.l}</div>`).join('')}</div>
@@ -118,7 +118,7 @@ function lanc(){
  const list=S.tx.filter(x=>(!F.q||x.desc.toLowerCase().includes(F.q.toLowerCase()))&&(!F.type||x.type===F.type)&&(!F.cat||x.cat===F.cat)&&(!F.tag||x.tags.includes(F.tag))&&(!F.acc||x.acc===F.acc)&&(!F.m||ym(x.date)===F.m)).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
  const allCats=[...new Set(Object.values(S.cats).flat())];
  return `${e?'':`<div class="card"><h2>Importar extrato (.xlsx)</h2><p style="color:var(--mu);margin:0 0 10px">Exporte o extrato no app do C6 e escolha o arquivo aqui. Você revisa tudo antes de salvar.</p><label class="btn" style="display:inline-block;cursor:pointer">📥 Escolher arquivo<input type="file" accept=".xlsx,.xls,.csv" hidden onchange="impFile(this.files[0]);this.value=''"></label></div>`}<div class="card"><h2>${e?'Editar lançamento':'Novo lançamento'}</h2>
- <div class="row"><label>Tipo<select id="f-type" onchange="typeChange()">${['despesa','receita','investimento'].map(k=>`<option value="${k}" ${k===ty?'selected':''}>${TN[k]}</option>`).join('')}</select></label>
+ <div class="row"><label>Tipo<select id="f-type" onchange="typeChange()">${['despesa','receita','investimento','resgate'].map(k=>`<option value="${k}" ${k===ty?'selected':''}>${TN[k]}</option>`).join('')}</select></label>
  <label style="flex:1;min-width:150px">Descrição<input id="f-desc" value="${e?esc(e.desc):''}" placeholder="Ex.: Supermercado"></label>
  <label>Valor (R$)<input id="f-amt" type="number" step="0.01" min="0" style="width:110px" value="${e?e.amount:''}"></label>
  <label>Data<input id="f-date" type="date" value="${e?e.date:today}"></label></div>
@@ -128,7 +128,7 @@ function lanc(){
  <button class="btn" onclick="saveTx()">${e?'Salvar alterações':'Adicionar'}</button> ${e?'<button class="btn g" onclick="edit=null;draw()">Cancelar</button>':''}</div>
  <div class="card"><h2>Filtros</h2><div class="row">
  <label>Busca<input value="${esc(F.q)}" oninput="F.q=this.value;fl()" placeholder="descrição"></label>
- <label>Tipo<select onchange="F.type=this.value;fl()">${['','receita','despesa','investimento'].map(k=>`<option value="${k}" ${F.type===k?'selected':''}>${k?TN[k]:'Todos'}</option>`).join('')}</select></label>
+ <label>Tipo<select onchange="F.type=this.value;fl()">${['','receita','despesa','investimento','resgate'].map(k=>`<option value="${k}" ${F.type===k?'selected':''}>${k?TN[k]:'Todos'}</option>`).join('')}</select></label>
  <label>Categoria<select onchange="F.cat=this.value;fl()">${opts(allCats,F.cat,'Todas')}</select></label>
  <label>Tag<select onchange="F.tag=this.value;fl()">${opts(S.tags,F.tag,'Todas')}</select></label>
  <label>Conta<select onchange="F.acc=this.value;fl()">${opts(S.accs,F.acc,'Todas')}</select></label>
@@ -138,11 +138,11 @@ function lanc(){
 }
 function fl(){const q=F.q;const keep=document.activeElement;const p=lanc();$('#app').innerHTML=p;typeChange(true);if(keep&&keep.tagName==='INPUT'&&keep.placeholder){const n=$('input[placeholder="descrição"]');n.focus();n.setSelectionRange(q.length,q.length)}}
 function table(l){
- const r=sum(l,'receita'),d=sum(l,'despesa'),i=sum(l,'investimento');
+ const r=sum(l,'receita'),d=sum(l,'despesa'),i=sum(l,'investimento'),g=sum(l,'resgate');
  if(!l.length)return '<div class="empty">Nenhum lançamento encontrado. Adicione o primeiro acima.</div>';
- return `<div style="margin-bottom:8px">${l.length} lançamentos · <span class="receita">${R(r)}</span> · <span class="despesa">${R(d)}</span> · <span class="investimento">${R(i)}</span></div>
+ return `<div style="margin-bottom:8px">${l.length} lançamentos · <span class="receita">${R(r)}</span> · <span class="despesa">${R(d)}</span> · <span class="investimento">${R(i)}</span>${g?` · <span class="resgate">${R(g)}</span>`:''}</div>
  <div class="tb"><table><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tags</th><th>Conta</th><th>Valor</th><th></th></tr>
- ${l.map(x=>`<tr><td data-l="Data">${x.date.split('-').reverse().join('/')}</td><td data-l="Descrição" class="dsc">${esc(x.desc)}${x.paid?'':' <span class="tag" style="color:var(--wn)">pendente</span>'}</td><td data-l="Categoria">${esc(x.cat)}</td><td data-l="Tags">${x.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</td><td data-l="Conta">${esc(x.acc)}</td><td data-l="Valor" class="${x.type}"><b>${x.type==='receita'?'+':'−'}${R(x.amount)}</b></td>
+ ${l.map(x=>`<tr><td data-l="Data">${x.date.split('-').reverse().join('/')}</td><td data-l="Descrição" class="dsc">${esc(x.desc)}${x.paid?'':' <span class="tag" style="color:var(--wn)">pendente</span>'}</td><td data-l="Categoria">${esc(x.cat)}</td><td data-l="Tags">${x.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</td><td data-l="Conta">${esc(x.acc)}</td><td data-l="Valor" class="${x.type}"><b>${x.type==='receita'||x.type==='resgate'?'+':'−'}${R(x.amount)}</b></td>
  <td style="white-space:nowrap"><button class="x" title="Editar" onclick="edit=${x.id};draw();scrollTo(0,0)">✎</button><button class="x" title="Excluir" onclick="delTx(${x.id})">🗑</button></td></tr>`).join('')}</table></div>`;
 }
 function typeChange(init){
@@ -157,15 +157,16 @@ function saveTx(){
 }
 function delTx(id){ask('Excluir este lançamento?',()=>{S.tx=S.tx.filter(x=>x.id!==id);FB.txDel(id);draw()})}
 function inv(){
- const all=S.tx.filter(x=>x.type==='investimento'),tot=all.reduce((s,x)=>s+x.amount,0),by={};
- all.forEach(x=>{(x.tags.length?x.tags:['Sem tag']).forEach(t=>by[t]=(by[t]||0)+x.amount/(x.tags.length||1))});
+ const all=S.tx.filter(x=>x.type==='investimento'||x.type==='resgate'),sg=x=>x.type==='resgate'?-x.amount:x.amount,tot=all.reduce((s,x)=>s+sg(x),0),ap=sum(all,'investimento'),rs=sum(all,'resgate'),by={};
+ all.forEach(x=>{(x.tags.length?x.tags:['Sem tag']).forEach(t=>by[t]=(by[t]||0)+sg(x)/(x.tags.length||1))});
  const bl=Object.entries(by).sort((a,b)=>b[1]-a[1]),list=all.filter(x=>!itag||x.tags.includes(itag)).sort((a,b)=>b.date.localeCompare(a.date));
  const mo=sum(all.filter(x=>ym(x.date)===M),'investimento');
- return `<div class="grid"><div class="kpi" style="border-left-color:var(--iv)"><small>Total investido</small><b class="investimento">${R(tot)}</b></div>
- <div class="kpi"><small>Aportes no mês ${M.split('-').reverse().join('/')}</small><b>${R(mo)}</b></div><div class="kpi"><small>Nº de aportes</small><b>${all.length}</b></div></div>
- <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Carteira por tag</h2><button class="btn" onclick="edit=null;F.type='investimento';go('lanc');$('#f-type').value='investimento';typeChange()">Novo aporte</button></div>
- ${bl.length?bl.map(([t,v])=>`<div>${esc(t)} <span style="float:right"><b>${R(v)}</b> · ${(v/tot*100).toFixed(1)}%</span><div class="bar"><i style="width:${v/tot*100}%;background:var(--iv)"></i></div></div>`).join(''):'<div class="empty">Registre um lançamento do tipo Investimento e use tags (Ações, FIIs, Renda fixa…) para ver a distribuição.</div>'}</div>
- <div class="card"><h2>Aportes</h2><div class="row"><label>Filtrar por tag<select onchange="itag=this.value;draw()">${opts(S.tags,itag,'Todas')}</select></label></div>${table(list)}</div>`;
+ return `<div class="grid"><div class="kpi" style="border-left-color:var(--iv)"><small>Saldo investido (aportes − resgates)</small><b class="investimento">${R(tot)}</b></div>
+ <div class="kpi"><small>Aportes no mês ${M.split('-').reverse().join('/')}</small><b>${R(mo)}</b></div><div class="kpi"><small>Aportado · Resgatado</small><b style="font-size:14px">${R(ap)} · ${R(rs)}</b></div></div>
+ <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Carteira por tag</h2><button class="btn" onclick="edit=null;F.type='investimento';go('lanc');$('#f-type').value='investimento';typeChange()">Novo aporte</button> <button class="btn g" onclick="edit=null;go('lanc');$('#f-type').value='resgate';typeChange()">Registrar resgate</button></div>
+ ${bl.length?bl.map(([t,v])=>`<div>${esc(t)} <span style="float:right"><b>${R(v)}</b> · ${(tot?v/tot*100:0).toFixed(1)}%</span><div class="bar"><i style="width:${tot?Math.max(0,v/tot*100):0}%;background:var(--iv)"></i></div></div>`).join(''):'<div class="empty">Registre um lançamento do tipo Investimento e use tags (Ações, FIIs, Renda fixa…) para ver a distribuição.</div>'}</div>
+ ${yieldCard()}
+ <div class="card"><h2>Aportes e resgates</h2><div class="row"><label>Filtrar por tag<select onchange="itag=this.value;draw()">${opts(S.tags,itag,'Todas')}</select></label></div>${table(list)}</div>`;
 }
 function orc(){
  const t=S.tx.filter(x=>ym(x.date)===M&&x.type==='despesa'),sp={};t.forEach(x=>sp[x.cat]=(sp[x.cat]||0)+x.amount);
@@ -196,7 +197,7 @@ function cfg(){
 function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
 const expJ=()=>dl('financas-backup.json',JSON.stringify(S),'application/json');
 const expC=()=>dl('lancamentos.csv','\ufeffdata;tipo;descricao;categoria;conta;tags;valor;paga\n'+S.tx.map(x=>[x.date,x.type,'"'+x.desc.replace(/"/g,'""')+'"',x.cat,x.acc,x.tags.join('|'),String(x.amount).replace('.',','),x.paid?'sim':'nao'].join(';')).join('\n'),'text/csv');
-function impJ(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.tx||!d.cats)throw 0;S={...structuredClone(DEF),...d};save();FB.txBatch(d.tx);draw()}catch(e){msg('Arquivo inválido.')}};r.readAsText(f)}
+function impJ(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.tx||!d.cats)throw 0;S={...structuredClone(DEF),...d};S.cats={...DEF.cats,...S.cats};save();FB.txBatch(d.tx);draw()}catch(e){msg('Arquivo inválido.')}};r.readAsText(f)}
 function closeOv(){const o=$('#ov');o.style.display='none';o.innerHTML=''}
 function ask(m,ok,inp){const o=$('#ov');o.innerHTML=`<div class="mod" role="dialog"><p>${esc(m)}</p>${inp?'<input id="ov-i" type="number" step="0.01" style="width:100%;margin-bottom:12px">':''}<div class="row" style="justify-content:flex-end;margin:0">${ok?'<button class="btn g" id="ov-n">Cancelar</button>':''}<button class="btn" id="ov-y">${ok?'Confirmar':'OK'}</button></div></div>`;o.style.display='flex';if(ok)$('#ov-n').onclick=closeOv;$('#ov-y').onclick=()=>{const v=inp?parseFloat($('#ov-i').value):0;closeOv();if(ok&&!(inp&&isNaN(v)))ok(v)};(inp?$('#ov-i'):$('#ov-y')).focus()}
 const msg=m=>ask(m);
@@ -211,14 +212,15 @@ function detect(A){for(let h=0;h<Math.min(A.length,40);h++){const H=A[h].map(nz)
 function guess(o){const r=S.rules[rkey(o.desc)];if(r){o.type=r.type;o.cat=r.cat;o.tag=r.tag||'';return}
  const t=nz(o.desc);
  if(o.type==='despesa'){if(/aplic|invest|cdb|tesouro|lci|lca|corretora/.test(t))o.type='investimento';else{const m=[[/mercado|supermerc|atacad|padaria|hortifruti/,'Mercado'],[/uber|posto|combust|ipiranga|estaciona|pedagio|sem parar/,'Transporte'],[/ifood|restaur|lanchon|cinema|netflix|spotify/,'Lazer'],[/farmac|drogar|hospital|clinica|laborat/,'Saúde']].find(([re])=>re.test(t));if(m)o.cat=m[1]}}
+ if(o.type==='receita'&&/resgate|resg |cdb|tesouro|lci|lca/.test(t))o.type='resgate';
  if(!S.cats[o.type].includes(o.cat))o.cat=S.cats[o.type].includes('Outros')?'Outros':(S.cats[o.type][0]||'')}
-function build(A,m){const ex=new Set(S.tx.map(x=>x.date+'|'+x.amount.toFixed(2)+'|'+(x.type==='receita'?'r':'d'))),rows=[];
+function build(A,m){const ex=new Set(S.tx.map(x=>x.date+'|'+x.amount.toFixed(2)+'|'+(x.type==='receita'||x.type==='resgate'?'r':'d'))),rows=[];
  for(let i=m.h+1;i<A.length;i++){const r=A[i],date=isoD(r[m.d]);if(!date)continue;
   let en=m.e>=0?Math.abs(money(r[m.e])):0,sa=m.s>=0?Math.abs(money(r[m.s])):0;
   if(m.v>=0&&!(m.e>=0)){const v=money(r[m.v]);en=v>0?v:0;sa=v<0?-v:0}
   const amount=en||sa;if(!amount)continue;
   const desc=[m.t>=0?r[m.t]:'',m.ds>=0?r[m.ds]:''].map(x=>String(x).trim()).filter(Boolean).join(' – ')||'Sem descrição',type=en?'receita':'despesa',o={date,desc,amount,type,cat:'',tag:'',touched:false};
-  guess(o);o.dup=ex.has(date+'|'+amount.toFixed(2)+'|'+(o.type==='receita'?'r':'d'));o.on=!o.dup;rows.push(o)}
+  guess(o);o.dup=ex.has(date+'|'+amount.toFixed(2)+'|'+(o.type==='receita'||o.type==='resgate'?'r':'d'));o.on=!o.dup;rows.push(o)}
  return rows}
 function impFile(f){if(!f)return;if(!window.XLSX){msg('A biblioteca de planilhas não carregou. Recarregue a página.');return}
  const rd=new FileReader();rd.onload=()=>{try{const wb=XLSX.read(rd.result,{type:'array',cellDates:true}),A=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}),m=detect(A),acc=S.accs.find(a=>/c6/i.test(a))||S.accs[0];
@@ -240,16 +242,63 @@ function mapView(){const A=IMP.A,m=IMP.m,H=A[m.h]||[];
  <div class="row"><label>Linha do cabeçalho<input type="number" min="1" value="${m.h+1}" onchange="IMP.m.h=Math.max(0,(+this.value||1)-1);draw()"></label><label>Data${col('d')}</label><label>Título${col('t',1)}</label><label>Descrição${col('ds',1)}</label><label>Entrada${col('e',1)}</label><label>Saída${col('s',1)}</label></div>
  <button class="btn" onclick="impMap()">Continuar</button> <button class="btn g" onclick="IMP=null;draw()">Cancelar</button></div>`}
 function impView(){if(IMP.stage==='map')return mapView();
- const L=IMP.rows,sel=L.filter(r=>r.on),a=sel.filter(r=>r.type==='receita').reduce((x,r)=>x+r.amount,0),b=sel.filter(r=>r.type!=='receita').reduce((x,r)=>x+r.amount,0);
+ const L=IMP.rows,sel=L.filter(r=>r.on),a=sel.filter(r=>r.type==='receita'||r.type==='resgate').reduce((x,r)=>x+r.amount,0),b=sel.filter(r=>r.type!=='receita'&&r.type!=='resgate').reduce((x,r)=>x+r.amount,0);
  return `<div class="card"><h2>Revisar extrato</h2><p style="color:var(--mu);margin-top:0">${L.length} linhas lidas. Ajuste tipo, categoria e tag: o site lembra suas escolhas para os próximos extratos. Linhas com mesma data e valor de algo já cadastrado vêm desmarcadas.</p>
  <div class="row"><label>Conta<select onchange="IMP.acc=this.value">${opts(S.accs,IMP.acc)}</select></label></div>
  <div style="margin-bottom:10px"><b>${sel.length}</b> selecionadas · <span class="receita">${R(a)}</span> entradas · <span class="despesa">${R(b)}</span> saídas</div>
  <div class="row"><button class="btn" onclick="impGo()">Importar selecionadas</button><button class="btn g" onclick="impAll(true)">Marcar todas</button><button class="btn g" onclick="impAll(false)">Desmarcar todas</button><button class="btn g" onclick="IMP=null;draw()">Cancelar</button></div></div>
- <div class="card"><div class="tb"><table class="imp"><tr><th></th><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Categoria</th><th>Tag</th></tr>${L.map((r,i)=>`<tr class="${r.dup?'dupe':''}"><td data-l="Importar"><input type="checkbox" ${r.on?'checked':''} onchange="impOn(${i},this.checked)"></td><td data-l="Data">${r.date.split('-').reverse().join('/')}</td><td data-l="Descrição" class="dsc">${esc(r.desc)}${r.dup?' <span class="tag" style="color:var(--wn)">já existe?</span>':''}</td><td data-l="Valor" class="${r.type}"><b>${r.type==='receita'?'+':'−'}${R(r.amount)}</b></td><td data-l="Tipo"><select onchange="impSet(${i},'type',this.value)">${['despesa','receita','investimento'].map(k=>`<option value="${k}" ${k===r.type?'selected':''}>${TN[k]}</option>`).join('')}</select></td><td data-l="Categoria"><select onchange="impSet(${i},'cat',this.value)">${opts(S.cats[r.type],r.cat)}</select></td><td data-l="Tag"><select onchange="impSet(${i},'tag',this.value)">${opts(S.tags,r.tag,'—')}</select></td></tr>`).join('')}</table></div></div>`}
+ <div class="card"><div class="tb"><table class="imp"><tr><th></th><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Categoria</th><th>Tag</th></tr>${L.map((r,i)=>`<tr class="${r.dup?'dupe':''}"><td data-l="Importar"><input type="checkbox" ${r.on?'checked':''} onchange="impOn(${i},this.checked)"></td><td data-l="Data">${r.date.split('-').reverse().join('/')}</td><td data-l="Descrição" class="dsc">${esc(r.desc)}${r.dup?' <span class="tag" style="color:var(--wn)">já existe?</span>':''}</td><td data-l="Valor" class="${r.type}"><b>${r.type==='receita'||r.type==='resgate'?'+':'−'}${R(r.amount)}</b></td><td data-l="Tipo"><select onchange="impSet(${i},'type',this.value)">${['despesa','receita','investimento','resgate'].map(k=>`<option value="${k}" ${k===r.type?'selected':''}>${TN[k]}</option>`).join('')}</select></td><td data-l="Categoria"><select onchange="impSet(${i},'cat',this.value)">${opts(S.cats[r.type],r.cat)}</select></td><td data-l="Tag"><select onchange="impSet(${i},'tag',this.value)">${opts(S.tags,r.tag,'—')}</select></td></tr>`).join('')}</table></div></div>`}
+let CDI={map:null,err:false,busy:false,from:''};
+async function loadCDI(first){CDI.busy=true;CDI.from=first;
+ try{const f=d=>d.split('-').reverse().join('/'),r=await fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.12/dados?formato=json&dataInicial=${f(first)}&dataFinal=${f(today)}`);
+  if(!r.ok)throw 0;const j=await r.json();if(!Array.isArray(j)||!j.length)throw 0;const m={};j.forEach(o=>{m[isoD(o.data)]=parseFloat(o.valor)/100});CDI.map=m}
+ catch(e){CDI.err=true}
+ CDI.busy=false;if(tab==='inv'&&!IMP)draw()}
+const IOFT=[96,93,90,86,83,80,76,73,70,66,63,60,56,53,50,46,43,40,36,33,30,26,23,20,16,13,10,6,3,0];
+const prevDay=d=>{const t=new Date(d+'T12:00:00');t.setDate(t.getDate()-1);return t.toISOString().slice(0,10)};
+const dayDiff=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5);
+function simYield(pr,mp){
+ const ds=Object.keys(mp).sort(),upto=ds[ds.length-1]||today;
+ const grow=(l,to)=>{for(const d of ds){if(d>l.at&&d<=to)l.v*=1+mp[d]*pr.cdi/100}l.at=to};
+ const tax=(l,at)=>{const n=dayDiff(l.d0,at),g=Math.max(0,l.v-l.p),io=n<30?g*(IOFT[Math.max(0,n-1)]||0)/100:0,ir=(g-io)*(n<=180?.225:n<=360?.2:n<=720?.175:.15);return{io,ir,n}};
+ const ev=S.tx.filter(x=>(x.type==='investimento'||x.type==='resgate')&&x.tags.includes(pr.tag)).sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+ const lots=[];let realized=0,miss=0;
+ for(const x of ev){
+  if(x.type==='investimento'){lots.push({d0:x.date,at:prevDay(x.date),p:x.amount,v:x.amount});continue}
+  let need=x.amount;
+  for(const l of lots){if(need<=0.004)break;if(l.v<=0.004)continue;grow(l,prevDay(x.date));const t=tax(l,x.date),net=l.v-t.io-t.ir;if(net<=0)continue;
+   const f=Math.min(1,need/net);need-=net*f;realized+=net*f-l.p*f;l.v*=1-f;l.p*=1-f}
+  if(need>0.01)miss+=need}
+ let P=0,V=0,IO=0,IR=0;const rows=[];
+ lots.forEach(l=>{if(l.v<=0.004)return;grow(l,upto);const t=tax(l,upto),net=l.v-t.io-t.ir;P+=l.p;V+=l.v;IO+=t.io;IR+=t.ir;rows.push({d0:l.d0,p:l.p,v:l.v,net,n:Math.max(0,t.n)})});
+ return{P,V,IO,IR,N:V-IO-IR,realized,miss,rows,upto}}
+function setProd(i,f,v){S.prods[i][f]=v;save();draw()}
+function delProd(i){S.prods.splice(i,1);save();draw()}
+function addProd(){S.prods.push({tag:S.tags[0]||'',cdi:101.5});save();draw()}
+function yieldCard(){
+ const H='<h2>Rendimento estimado (CDB pós-fixado)</h2>',fd=d=>d.split('-').reverse().join('/');
+ const first=S.tx.filter(x=>x.type==='investimento'&&S.prods.some(p=>x.tags.includes(p.tag))).map(x=>x.date).sort()[0];
+ const ed=`<div class="row" style="margin-top:10px"><button class="btn g" onclick="addProd()">+ Outro produto</button></div>`;
+ if(!first)return `<div class="card">${H}<div class="empty">Registre aportes com a tag do produto (padrão: Renda fixa) para ver a estimativa. Você escolhe a tag e o % do CDI aqui.</div>${S.prods.map((p,i)=>prodRow(p,i)).join('')}${ed}</div>`;
+ if(CDI.map&&first<CDI.from)CDI={map:null,err:false,busy:false,from:''};
+ if(!CDI.map&&!CDI.err&&!CDI.busy)loadCDI(first);
+ let mp=CDI.map;
+ if(!mp&&CDI.err){mp={};for(const d=new Date(first+'T12:00:00');d.toISOString().slice(0,10)<today;d.setDate(d.getDate()+1)){const w=d.getDay();if(w&&w<6)mp[d.toISOString().slice(0,10)]=Math.pow(1+S.cdiAA/100,1/252)-1}}
+ if(!mp)return `<div class="card">${H}<div class="empty">Buscando o CDI no Banco Central…</div></div>`;
+ const st=CDI.map?`CDI diário do Banco Central até ${fd(Object.keys(mp).sort().pop())}.`:`Sem acesso ao Banco Central: usando CDI de <input type="number" step="0.01" value="${S.cdiAA}" style="width:80px" onchange="S.cdiAA=+this.value||13.65;save();draw()"> % a.a. (aproximado, ignora feriados).`;
+ return `<div class="card">${H}<p style="color:var(--mu);margin:0 0 6px">${st} <button class="btn g" style="padding:2px 10px;min-height:0" onclick="CDI={map:null,err:false,busy:false,from:''};draw()">Atualizar CDI</button></p>
+ ${S.prods.map((p,i)=>{const m=simYield(p,mp);return `<div style="border-top:1px solid var(--ln);padding-top:10px;margin-top:10px">${prodRow(p,i)}
+ <div class="grid"><div class="kpi"><small>Principal aplicado</small><b>${R(m.P)}</b></div><div class="kpi"><small>Saldo bruto estimado</small><b>${R(m.V)}</b></div><div class="kpi"><small>Rendimento bruto</small><b class="receita">${R(m.V-m.P)}</b></div><div class="kpi"><small>IOF + IR estimados</small><b class="despesa">${R(m.IO+m.IR)}</b></div><div class="kpi" style="border-left-color:var(--ac)"><small>Saldo líquido estimado</small><b>${R(m.N)}</b></div></div>
+ ${p.real?`<p style="margin:0 0 8px">Diferença para o app do C6: <b>${R(m.N-p.real)}</b> (estimado − app)</p>`:''}
+ ${m.realized?`<p style="margin:0 0 8px;color:var(--mu)">Rendimento líquido já resgatado: ${R(m.realized)}</p>`:''}
+ ${m.miss>0.01?`<p style="margin:0 0 8px;color:var(--wn)">Resgates com essa tag passam do saldo estimado em ${R(m.miss)}. Confira as tags dos lançamentos.</p>`:''}
+ ${m.rows.length?`<details><summary style="cursor:pointer;color:var(--ac);font-weight:700">Ver aplicações</summary><div class="tb"><table style="margin-top:8px"><tr><th>Aplicação</th><th>Aplicado</th><th>Bruto hoje</th><th>Líquido hoje</th><th>Dias</th></tr>${m.rows.map(r=>`<tr><td data-l="Aplicação">${fd(r.d0)}</td><td data-l="Aplicado">${R(r.p)}</td><td data-l="Bruto hoje">${R(r.v)}</td><td data-l="Líquido hoje">${R(r.net)}</td><td data-l="Dias">${r.n}</td></tr>`).join('')}</table></div></details>`:''}</div>`}).join('')}
+ ${ed}<p style="color:var(--mu);font-size:13px;margin-bottom:0">Estimativa: CDI diário × % contratado, rendendo a partir do dia do aporte (se for dia útil) até o último CDI publicado, com IOF (primeiros 30 dias) e IR regressivo. Resgates abatem dos aportes mais antigos. O app do C6 pode divergir em centavos.</p></div>`}
+function prodRow(p,i){return `<div class="row"><label>Tag do produto<select onchange="setProd(${i},'tag',this.value)">${opts(S.tags,p.tag)}</select></label><label>% do CDI<input type="number" step="0.1" min="0" value="${p.cdi}" onchange="setProd(${i},'cdi',+this.value||0)"></label><label>Saldo líquido no app (opcional)<input type="number" step="0.01" min="0" value="${p.real||''}" onchange="setProd(${i},'real',+this.value||0)"></label>${S.prods.length>1?`<button class="x" title="Remover" onclick="delProd(${i})">🗑</button>`:''}</div>`}
 const quiet=()=>{const a=document.activeElement;if(USER&&!(a&&/^(f-|g-|n-)/.test(a.id)))draw()};
 const loginView=()=>`<div class="card" style="max-width:420px;margin:40px auto;text-align:center"><h2>Entrar</h2><p style="color:var(--mu)">${window.FBMISSING?'Firebase ainda não configurado. Preencha o arquivo firebase-config.js (veja o README).':'Seus dados ficam salvos na sua conta Google, só você acessa.'}</p><button class="btn" onclick="FB.login()">Entrar com Google</button></div>`;
 window.addEventListener('fb-user',e=>{USER=e.detail;if(!USER)S=structuredClone(DEF);draw()});
-window.addEventListener('fb-cfg',e=>{const c=e.detail;if(!c){save();return}Object.assign(S,{cats:c.cats||S.cats,tags:c.tags||S.tags,accs:c.accs||S.accs,budgets:c.budgets||{},goals:c.goals||[],rules:c.rules||{}});quiet()});
+window.addEventListener('fb-cfg',e=>{const c=e.detail;if(!c){save();return}Object.assign(S,{cats:{...DEF.cats,...(c.cats||{})},tags:c.tags||S.tags,accs:c.accs||S.accs,budgets:c.budgets||{},goals:c.goals||[],rules:c.rules||{},prods:c.prods||structuredClone(DEF.prods),cdiAA:c.cdiAA||13.65});quiet()});
 window.addEventListener('fb-tx',e=>{S.tx=e.detail;quiet()});
 draw();
 </script>
