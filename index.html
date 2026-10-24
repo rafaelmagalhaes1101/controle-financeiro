@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Meu Controle Financeiro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#eef1f4;--sf:#fff;--tx:#14213d;--mu:#5d6b82;--ln:#d9dfe7;--ac:#0f766e;--ac2:#e6f4f2;--rc:#0f766e;--ds:#b42356;--iv:#3949ab;--wn:#b7791f;
@@ -61,6 +62,7 @@ td.dsc{font-weight:700}td:last-child::before{content:none}td:last-child{justify-
 td[data-l="Tags"]:empty{display:none}
 .mon{height:120px}.mod{max-width:100%}
 }
+.dupe{opacity:.65}table.imp select{max-width:170px;padding:4px 6px}table.imp input[type=checkbox]{width:20px;height:20px}
 </style>
 </head>
 <body>
@@ -71,23 +73,23 @@ td[data-l="Tags"]:empty{display:none}
 const KEY='financas-v1',$=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const R=v=>(+v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const DEF={tx:[],goals:[],budgets:{},
+const DEF={tx:[],goals:[],budgets:{},rules:{},
 cats:{despesa:['Moradia','Mercado','Transporte','Saúde','Lazer','Educação','Contas fixas','Outros'],receita:['Salário','Freelance','Rendimentos','Outros'],investimento:['Aporte']},
 tags:['Renda fixa','Ações','FIIs','Cripto','Reserva de emergência','Exterior'],accs:['Conta corrente','Cartão de crédito','Dinheiro','Corretora']};
 let S=structuredClone(DEF),USER;
-const save=()=>{if(USER&&window.FB)FB.saveCfg({cats:S.cats,tags:S.tags,accs:S.accs,budgets:S.budgets,goals:S.goals})};
+const save=()=>{if(USER&&window.FB)FB.saveCfg({cats:S.cats,tags:S.tags,accs:S.accs,budgets:S.budgets,goals:S.goals,rules:S.rules})};
 const now=new Date(),ym=d=>d.slice(0,7),today=now.toISOString().slice(0,10);
 let tab='resumo',M=today.slice(0,7),F={q:'',type:'',cat:'',tag:'',acc:'',m:''},edit=null,itag='';
 const TABS=[['resumo','Resumo','Resumo','📊'],['lanc','Lançamentos','Lançam.','🧾'],['inv','Investimentos','Invest.','📈'],['orc','Orçamento','Orçam.','🎯'],['metas','Metas','Metas','🏁'],['cfg','Ajustes','Ajustes','⚙️']];
 const TN={receita:'Receita',despesa:'Despesa',investimento:'Investimento'};
 const sum=(a,t)=>a.filter(x=>x.type===t).reduce((s,x)=>s+x.amount,0);
 const opts=(arr,sel,all)=>(all!==undefined?`<option value="">${all}</option>`:'')+arr.map(o=>`<option ${o===sel?'selected':''}>${esc(o)}</option>`).join('');
-function go(t){tab=t;draw()}
+function go(t){IMP=null;tab=t;draw()}
 function draw(){
  if(!USER){$('#nav').innerHTML='';$('#app').innerHTML=USER===undefined?'<div class="empty">Carregando…</div>':loginView();return}
  $('#nav').innerHTML=TABS.map(([k,l,sh,ic])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')"><span class="ic">${ic}</span><span class="lg">${l}</span><span class="sh">${sh}</span></button>`).join('')+`<button class="out" style="margin-left:auto" onclick="FB.logout()">Sair</button>`;
- $('#app').innerHTML=({resumo,lanc,inv,orc,metas,cfg})[tab]();
- if(tab==='lanc')typeChange(true);
+ $('#app').innerHTML=IMP?impView():({resumo,lanc,inv,orc,metas,cfg})[tab]();
+ if(tab==='lanc'&&!IMP)typeChange(true);
 }
 const monthPick=()=>`<label>Mês<input type="month" value="${M}" onchange="M=this.value||M;draw()"></label>`;
 function resumo(){
@@ -115,7 +117,7 @@ function lanc(){
  const e=edit?S.tx.find(x=>x.id===edit):null,ty=e?e.type:'despesa';
  const list=S.tx.filter(x=>(!F.q||x.desc.toLowerCase().includes(F.q.toLowerCase()))&&(!F.type||x.type===F.type)&&(!F.cat||x.cat===F.cat)&&(!F.tag||x.tags.includes(F.tag))&&(!F.acc||x.acc===F.acc)&&(!F.m||ym(x.date)===F.m)).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
  const allCats=[...new Set(Object.values(S.cats).flat())];
- return `<div class="card"><h2>${e?'Editar lançamento':'Novo lançamento'}</h2>
+ return `${e?'':`<div class="card"><h2>Importar extrato (.xlsx)</h2><p style="color:var(--mu);margin:0 0 10px">Exporte o extrato no app do C6 e escolha o arquivo aqui. Você revisa tudo antes de salvar.</p><label class="btn" style="display:inline-block;cursor:pointer">📥 Escolher arquivo<input type="file" accept=".xlsx,.xls,.csv" hidden onchange="impFile(this.files[0]);this.value=''"></label></div>`}<div class="card"><h2>${e?'Editar lançamento':'Novo lançamento'}</h2>
  <div class="row"><label>Tipo<select id="f-type" onchange="typeChange()">${['despesa','receita','investimento'].map(k=>`<option value="${k}" ${k===ty?'selected':''}>${TN[k]}</option>`).join('')}</select></label>
  <label style="flex:1;min-width:150px">Descrição<input id="f-desc" value="${e?esc(e.desc):''}" placeholder="Ex.: Supermercado"></label>
  <label>Valor (R$)<input id="f-amt" type="number" step="0.01" min="0" style="width:110px" value="${e?e.amount:''}"></label>
@@ -199,10 +201,55 @@ function closeOv(){const o=$('#ov');o.style.display='none';o.innerHTML=''}
 function ask(m,ok,inp){const o=$('#ov');o.innerHTML=`<div class="mod" role="dialog"><p>${esc(m)}</p>${inp?'<input id="ov-i" type="number" step="0.01" style="width:100%;margin-bottom:12px">':''}<div class="row" style="justify-content:flex-end;margin:0">${ok?'<button class="btn g" id="ov-n">Cancelar</button>':''}<button class="btn" id="ov-y">${ok?'Confirmar':'OK'}</button></div></div>`;o.style.display='flex';if(ok)$('#ov-n').onclick=closeOv;$('#ov-y').onclick=()=>{const v=inp?parseFloat($('#ov-i').value):0;closeOv();if(ok&&!(inp&&isNaN(v)))ok(v)};(inp?$('#ov-i'):$('#ov-y')).focus()}
 const msg=m=>ask(m);
 function show(t,txt){const o=$('#ov');o.innerHTML=`<div class="mod" role="dialog"><p><b>${esc(t)}</b><br><small>Copie o texto abaixo e salve em um arquivo no seu computador.</small></p><textarea id="ov-t" readonly style="width:100%;height:160px;background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:8px;margin-bottom:12px"></textarea><div class="row" style="justify-content:flex-end;margin:0"><button class="btn g" id="ov-n">Fechar</button><button class="btn" id="ov-y">Copiar</button></div></div>`;o.style.display='flex';const ta=$('#ov-t');ta.value=txt;ta.select();$('#ov-n').onclick=closeOv;$('#ov-y').onclick=()=>{ta.select();try{navigator.clipboard.writeText(txt)}catch(e){document.execCommand('copy')}}}
+let IMP=null;
+const nz=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const money=v=>{if(typeof v==='number')return v;let t=String(v).replace(/[^\d,.\-]/g,'');if(!t||t==='-')return 0;if(t.includes(','))t=t.replace(/\./g,'').replace(',','.');return parseFloat(t)||0};
+const isoD=v=>{if(v instanceof Date&&!isNaN(v))return new Date(v.getTime()+432e5).toISOString().slice(0,10);const m=String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;const n=String(v).match(/^\d{4}-\d{2}-\d{2}/);return n?n[0]:''};
+const rkey=d=>nz(d).replace(/\d+/g,'').replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim().slice(0,40);
+function detect(A){for(let h=0;h<Math.min(A.length,40);h++){const H=A[h].map(nz),d=H.findIndex(x=>x.includes('data')&&x.includes('lanc')),dd=d>=0?d:H.findIndex(x=>x.startsWith('data')),e=H.findIndex(x=>/entrada|credito/.test(x)),sa=H.findIndex(x=>/saida|debito/.test(x)),v=H.findIndex(x=>x.startsWith('valor'));
+ if(dd>=0&&((e>=0&&sa>=0)||v>=0))return{h,d:dd,t:H.findIndex(x=>/titulo|historico/.test(x)),ds:H.findIndex(x=>/descri/.test(x)),e,s:sa,v:(e>=0&&sa>=0)?-1:v}}return null}
+function guess(o){const r=S.rules[rkey(o.desc)];if(r){o.type=r.type;o.cat=r.cat;o.tag=r.tag||'';return}
+ const t=nz(o.desc);
+ if(o.type==='despesa'){if(/aplic|invest|cdb|tesouro|lci|lca|corretora/.test(t))o.type='investimento';else{const m=[[/mercado|supermerc|atacad|padaria|hortifruti/,'Mercado'],[/uber|posto|combust|ipiranga|estaciona|pedagio|sem parar/,'Transporte'],[/ifood|restaur|lanchon|cinema|netflix|spotify/,'Lazer'],[/farmac|drogar|hospital|clinica|laborat/,'Saúde']].find(([re])=>re.test(t));if(m)o.cat=m[1]}}
+ if(!S.cats[o.type].includes(o.cat))o.cat=S.cats[o.type].includes('Outros')?'Outros':(S.cats[o.type][0]||'')}
+function build(A,m){const ex=new Set(S.tx.map(x=>x.date+'|'+x.amount.toFixed(2)+'|'+(x.type==='receita'?'r':'d'))),rows=[];
+ for(let i=m.h+1;i<A.length;i++){const r=A[i],date=isoD(r[m.d]);if(!date)continue;
+  let en=m.e>=0?Math.abs(money(r[m.e])):0,sa=m.s>=0?Math.abs(money(r[m.s])):0;
+  if(m.v>=0&&!(m.e>=0)){const v=money(r[m.v]);en=v>0?v:0;sa=v<0?-v:0}
+  const amount=en||sa;if(!amount)continue;
+  const desc=[m.t>=0?r[m.t]:'',m.ds>=0?r[m.ds]:''].map(x=>String(x).trim()).filter(Boolean).join(' – ')||'Sem descrição',type=en?'receita':'despesa',o={date,desc,amount,type,cat:'',tag:'',touched:false};
+  guess(o);o.dup=ex.has(date+'|'+amount.toFixed(2)+'|'+(o.type==='receita'?'r':'d'));o.on=!o.dup;rows.push(o)}
+ return rows}
+function impFile(f){if(!f)return;if(!window.XLSX){msg('A biblioteca de planilhas não carregou. Recarregue a página.');return}
+ const rd=new FileReader();rd.onload=()=>{try{const wb=XLSX.read(rd.result,{type:'array',cellDates:true}),A=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}),m=detect(A),acc=S.accs.find(a=>/c6/i.test(a))||S.accs[0];
+  if(!A.length)throw 0;
+  if(m){const rows=build(A,m);if(!rows.length){msg('Não encontrei lançamentos nesse arquivo.');return}IMP={rows,acc}}
+  else IMP={stage:'map',A,acc,m:{h:0,d:0,t:-1,ds:1,e:2,s:3,v:-1}};
+  draw()}catch(e){IMP=null;msg(/password|encrypt/i.test(String(e&&e.message))?'Esse arquivo tem senha. Remova a senha no Excel (veja as instruções) e tente de novo.':'Não consegui ler esse arquivo. Use o extrato em .xlsx exportado do C6.')}};rd.readAsArrayBuffer(f)}
+function impSet(i,f,v){const r=IMP.rows[i];r[f]=v;r.touched=true;if(f==='type')r.cat=S.cats[v][0]||'';
+ const k=rkey(r.desc);if(k){S.rules[k]={type:r.type,cat:r.cat,tag:r.tag};save();IMP.rows.forEach(o=>{if(o!==r&&!o.touched&&rkey(o.desc)===k){o.type=r.type;o.cat=r.cat;o.tag=r.tag}})}draw()}
+const impOn=(i,v)=>{IMP.rows[i].on=v;draw()},impAll=v=>{IMP.rows.forEach(r=>r.on=v);draw()};
+function impGo(){const sel=IMP.rows.filter(r=>r.on);if(!sel.length){msg('Nenhuma linha selecionada.');return}
+ const t0=Date.now(),list=sel.map((r,i)=>({id:t0+i,type:r.type,desc:r.desc,amount:r.amount,date:r.date,cat:r.cat,acc:IMP.acc,paid:true,tags:r.tag?[r.tag]:[],src:'c6'}));
+ S.tx.push(...list);FB.txBatch(list);IMP=null;tab='lanc';draw();msg(list.length+' lançamentos importados.')}
+function impMap(){const rows=build(IMP.A,IMP.m);if(!rows.length){msg('Nenhum lançamento encontrado com essas colunas.');return}IMP.rows=rows;IMP.stage=null;draw()}
+function mapView(){const A=IMP.A,m=IMP.m,H=A[m.h]||[];
+ const col=(k,none)=>`<select onchange="IMP.m.${k}=+this.value;draw()">${none?'<option value="-1">(nenhuma)</option>':''}${H.map((c,i)=>`<option value="${i}" ${m[k]===i?'selected':''}>${String.fromCharCode(65+i)}: ${esc(String(c).slice(0,24))}</option>`).join('')}</select>`;
+ return `<div class="card"><h2>Não reconheci as colunas automaticamente</h2><p style="color:var(--mu);margin-top:0">Escolha a linha do cabeçalho e o que é cada coluna.</p>
+ <div style="font-size:12px;color:var(--mu);margin-bottom:10px;overflow-x:auto;white-space:nowrap">${A.slice(0,10).map((r,i)=>`<div>${i+1}: ${esc(r.map(x=>String(x).slice(0,18)).join(' | '))}</div>`).join('')}</div>
+ <div class="row"><label>Linha do cabeçalho<input type="number" min="1" value="${m.h+1}" onchange="IMP.m.h=Math.max(0,(+this.value||1)-1);draw()"></label><label>Data${col('d')}</label><label>Título${col('t',1)}</label><label>Descrição${col('ds',1)}</label><label>Entrada${col('e',1)}</label><label>Saída${col('s',1)}</label></div>
+ <button class="btn" onclick="impMap()">Continuar</button> <button class="btn g" onclick="IMP=null;draw()">Cancelar</button></div>`}
+function impView(){if(IMP.stage==='map')return mapView();
+ const L=IMP.rows,sel=L.filter(r=>r.on),a=sel.filter(r=>r.type==='receita').reduce((x,r)=>x+r.amount,0),b=sel.filter(r=>r.type!=='receita').reduce((x,r)=>x+r.amount,0);
+ return `<div class="card"><h2>Revisar extrato</h2><p style="color:var(--mu);margin-top:0">${L.length} linhas lidas. Ajuste tipo, categoria e tag: o site lembra suas escolhas para os próximos extratos. Linhas com mesma data e valor de algo já cadastrado vêm desmarcadas.</p>
+ <div class="row"><label>Conta<select onchange="IMP.acc=this.value">${opts(S.accs,IMP.acc)}</select></label></div>
+ <div style="margin-bottom:10px"><b>${sel.length}</b> selecionadas · <span class="receita">${R(a)}</span> entradas · <span class="despesa">${R(b)}</span> saídas</div>
+ <div class="row"><button class="btn" onclick="impGo()">Importar selecionadas</button><button class="btn g" onclick="impAll(true)">Marcar todas</button><button class="btn g" onclick="impAll(false)">Desmarcar todas</button><button class="btn g" onclick="IMP=null;draw()">Cancelar</button></div></div>
+ <div class="card"><div class="tb"><table class="imp"><tr><th></th><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Categoria</th><th>Tag</th></tr>${L.map((r,i)=>`<tr class="${r.dup?'dupe':''}"><td data-l="Importar"><input type="checkbox" ${r.on?'checked':''} onchange="impOn(${i},this.checked)"></td><td data-l="Data">${r.date.split('-').reverse().join('/')}</td><td data-l="Descrição" class="dsc">${esc(r.desc)}${r.dup?' <span class="tag" style="color:var(--wn)">já existe?</span>':''}</td><td data-l="Valor" class="${r.type}"><b>${r.type==='receita'?'+':'−'}${R(r.amount)}</b></td><td data-l="Tipo"><select onchange="impSet(${i},'type',this.value)">${['despesa','receita','investimento'].map(k=>`<option value="${k}" ${k===r.type?'selected':''}>${TN[k]}</option>`).join('')}</select></td><td data-l="Categoria"><select onchange="impSet(${i},'cat',this.value)">${opts(S.cats[r.type],r.cat)}</select></td><td data-l="Tag"><select onchange="impSet(${i},'tag',this.value)">${opts(S.tags,r.tag,'—')}</select></td></tr>`).join('')}</table></div></div>`}
 const quiet=()=>{const a=document.activeElement;if(USER&&!(a&&/^(f-|g-|n-)/.test(a.id)))draw()};
 const loginView=()=>`<div class="card" style="max-width:420px;margin:40px auto;text-align:center"><h2>Entrar</h2><p style="color:var(--mu)">${window.FBMISSING?'Firebase ainda não configurado. Preencha o arquivo firebase-config.js (veja o README).':'Seus dados ficam salvos na sua conta Google, só você acessa.'}</p><button class="btn" onclick="FB.login()">Entrar com Google</button></div>`;
 window.addEventListener('fb-user',e=>{USER=e.detail;if(!USER)S=structuredClone(DEF);draw()});
-window.addEventListener('fb-cfg',e=>{const c=e.detail;if(!c){save();return}Object.assign(S,{cats:c.cats||S.cats,tags:c.tags||S.tags,accs:c.accs||S.accs,budgets:c.budgets||{},goals:c.goals||[]});quiet()});
+window.addEventListener('fb-cfg',e=>{const c=e.detail;if(!c){save();return}Object.assign(S,{cats:c.cats||S.cats,tags:c.tags||S.tags,accs:c.accs||S.accs,budgets:c.budgets||{},goals:c.goals||[],rules:c.rules||{}});quiet()});
 window.addEventListener('fb-tx',e=>{S.tx=e.detail;quiet()});
 draw();
 </script>
