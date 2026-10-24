@@ -1,11 +1,11 @@
 // 1) Cole aqui o firebaseConfig do seu projeto (Firebase Console > Configurações do projeto > Seus apps > Web).
 const firebaseConfig = {
-  apiKey: "COLE_AQUI",
-  authDomain: "COLE_AQUI",
-  projectId: "COLE_AQUI",
-  storageBucket: "COLE_AQUI",
-  messagingSenderId: "COLE_AQUI",
-  appId: "COLE_AQUI"
+  apiKey: "AIzaSyAGePn6htOvthT4-q5MfnYQZmHgnOqbvJ0",
+  authDomain: "controle-financeiro-db48e.firebaseapp.com",
+  projectId: "controle-financeiro-db48e",
+  storageBucket: "controle-financeiro-db48e.firebasestorage.app",
+  messagingSenderId: "324252800133",
+  appId: "1:324252800133:web:9f0ac16c5964dfc19745ec"
 };
 
 // ---- Daqui para baixo não precisa mexer ----
