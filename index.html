@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meu Controle Financeiro</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f4;--sf:#fff;--tx:#14213d;--mu:#5d6b82;--ln:#d9dfe7;--ac:#0f766e;--ac2:#e6f4f2;--rc:#0f766e;--ds:#b42356;--iv:#3949ab;--wn:#b7791f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1623;--sf:#16213a;--tx:#e8edf6;--mu:#93a1ba;--ln:#27334f;--ac:#2dd4bf;--ac2:#12303a;--rc:#2dd4bf;--ds:#ff6b9a;--iv:#8c9eff;--wn:#f6c453}}
+:root[data-theme="dark"]{--bg:#0e1623;--sf:#16213a;--tx:#e8edf6;--mu:#93a1ba;--ln:#27334f;--ac:#2dd4bf;--ac2:#12303a;--rc:#2dd4bf;--ds:#ff6b9a;--iv:#8c9eff;--wn:#f6c453}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 Manrope,system-ui,sans-serif}
+header{background:var(--sf);border-bottom:1px solid var(--ln);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.in{max-width:1000px;margin:0 auto;padding:12px 16px}
+h1{font-size:18px;margin:0 0 8px;font-weight:800}
+nav{display:flex;gap:4px;overflow-x:auto}
+nav button{border:0;background:none;color:var(--mu);font:600 14px Manrope,system-ui,sans-serif;padding:8px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+nav button.on{background:var(--ac2);color:var(--ac)}
+main{max-width:1000px;margin:0 auto;padding:16px}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:16px;margin-bottom:16px}
+h2{font-size:16px;margin:0 0 12px;font-weight:800}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px}
+.kpi{background:var(--sf);border:1px solid var(--ln);border-left:4px solid var(--ln);border-radius:10px;padding:12px}
+.kpi small{color:var(--mu);display:block}.kpi b{font-size:20px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:8px}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--mu);gap:3px;font-weight:600}
+input,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:7px 9px;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+.btn{background:var(--ac);color:var(--sf);border:0;border-radius:8px;padding:8px 14px;font:700 14px Manrope,system-ui,sans-serif;cursor:pointer}
+.btn.g{background:none;color:var(--mu);border:1px solid var(--ln)}
+.x{background:none;border:0;color:var(--mu);cursor:pointer;font-size:16px}
+.tb{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:620px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--ln);font-size:14px}th{color:var(--mu);font-size:12px}
+.tag{display:inline-block;background:var(--ac2);color:var(--ac);border-radius:20px;padding:1px 9px;font-size:12px;margin:0 3px 3px 0;font-weight:600}
+.receita{color:var(--rc)}.despesa{color:var(--ds)}.investimento{color:var(--iv)}
+.bar{height:8px;background:var(--bg);border-radius:6px;overflow:hidden;margin:4px 0 10px}.bar i{display:block;height:100%;background:var(--ac)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chips label{flex-direction:row;align-items:center;gap:4px;font-size:13px;color:var(--tx);background:var(--bg);border:1px solid var(--ln);border-radius:20px;padding:3px 10px}
+.mon{display:flex;gap:10px;align-items:end;height:130px}.mon div{flex:1;text-align:center;font-size:11px;color:var(--mu)}
+.mon .p{display:flex;gap:3px;align-items:end;height:100px;justify-content:center}.mon .p i{width:40%;max-width:22px;border-radius:4px 4px 0 0}
+.empty{color:var(--mu);padding:12px 0}.two{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+#ov{display:none;position:fixed;inset:0;background:rgba(10,18,32,.55);z-index:20;align-items:center;justify-content:center;padding:16px}.mod{background:var(--sf);color:var(--tx);border:1px solid var(--ln);border-radius:10px;padding:16px;width:100%;max-width:420px}
+</style>
+</head>
+<body>
+<header><div class="in"><h1>💰 Meu Controle Financeiro</h1><nav id="nav"></nav></div></header>
+<main id="app"></main>
+<div id="ov"></div>
+<script>
+const KEY='financas-v1',$=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const R=v=>(+v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const DEF={tx:[],goals:[],budgets:{},
+cats:{despesa:['Moradia','Mercado','Transporte','Saúde','Lazer','Educação','Contas fixas','Outros'],receita:['Salário','Freelance','Rendimentos','Outros'],investimento:['Aporte']},
+tags:['Renda fixa','Ações','FIIs','Cripto','Reserva de emergência','Exterior'],accs:['Conta corrente','Cartão de crédito','Dinheiro','Corretora']};
+let S=structuredClone(DEF),USER;
+const save=()=>{if(USER&&window.FB)FB.saveCfg({cats:S.cats,tags:S.tags,accs:S.accs,budgets:S.budgets,goals:S.goals})};
+const now=new Date(),ym=d=>d.slice(0,7),today=now.toISOString().slice(0,10);
+let tab='resumo',M=today.slice(0,7),F={q:'',type:'',cat:'',tag:'',acc:'',m:''},edit=null,itag='';
+const TABS=[['resumo','Resumo'],['lanc','Lançamentos'],['inv','Investimentos'],['orc','Orçamento'],['metas','Metas'],['cfg','Ajustes']];
+const TN={receita:'Receita',despesa:'Despesa',investimento:'Investimento'};
+const sum=(a,t)=>a.filter(x=>x.type===t).reduce((s,x)=>s+x.amount,0);
+const opts=(arr,sel,all)=>(all!==undefined?`<option value="">${all}</option>`:'')+arr.map(o=>`<option ${o===sel?'selected':''}>${esc(o)}</option>`).join('');
+function go(t){tab=t;draw()}
+function draw(){
+ if(!USER){$('#nav').innerHTML='';$('#app').innerHTML=USER===undefined?'<div class="empty">Carregando…</div>':loginView();return}
+ $('#nav').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')">${l}</button>`).join('')+`<button style="margin-left:auto" onclick="FB.logout()">Sair</button>`;
+ $('#app').innerHTML=({resumo,lanc,inv,orc,metas,cfg})[tab]();
+ if(tab==='lanc')typeChange(true);
+}
+const monthPick=()=>`<label>Mês<input type="month" value="${M}" onchange="M=this.value||M;draw()"></label>`;
+function resumo(){
+ const t=S.tx.filter(x=>ym(x.date)===M),r=sum(t,'receita'),d=sum(t,'despesa'),i=sum(t,'investimento');
+ const cats={};t.filter(x=>x.type==='despesa').forEach(x=>cats[x.cat]=(cats[x.cat]||0)+x.amount);
+ const cl=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+ let mons=[];for(let k=5;k>=0;k--){const dt=new Date(now.getFullYear(),now.getMonth()-k,1),key=dt.toISOString().slice(0,7);
+  const tt=S.tx.filter(x=>ym(x.date)===key);mons.push({key,l:dt.toLocaleDateString('pt-BR',{month:'short'}),r:sum(tt,'receita'),d:sum(tt,'despesa')})}
+ const mx=Math.max(1,...mons.flatMap(m=>[m.r,m.d]));
+ const pend=S.tx.filter(x=>x.type==='despesa'&&!x.paid).sort((a,b)=>a.date.localeCompare(b.date));
+ const over=Object.entries(S.budgets).filter(([c,l])=>l>0&&(cats[c]||0)>l);
+ return `<div class="row">${monthPick()}</div>
+ <div class="grid"><div class="kpi" style="border-left-color:var(--rc)"><small>Receitas</small><b class="receita">${R(r)}</b></div>
+ <div class="kpi" style="border-left-color:var(--ds)"><small>Despesas</small><b class="despesa">${R(d)}</b></div>
+ <div class="kpi" style="border-left-color:var(--iv)"><small>Investido</small><b class="investimento">${R(i)}</b></div>
+ <div class="kpi" style="border-left-color:var(--ac)"><small>Saldo do mês</small><b>${R(r-d-i)}</b></div></div>
+ ${over.length?`<div class="card" style="border-color:var(--wn)"><b style="color:var(--wn)">Atenção:</b> orçamento estourado em ${over.map(([c])=>esc(c)).join(', ')}.</div>`:''}
+ <div class="two"><div class="card"><h2>Despesas por categoria</h2>${cl.length?cl.map(([c,v])=>`<div>${esc(c)} <b style="float:right">${R(v)}</b><div class="bar"><i style="width:${v/d*100}%;background:var(--ds)"></i></div></div>`).join(''):'<div class="empty">Nenhuma despesa neste mês.</div>'}</div>
+ <div class="card"><h2>Últimos 6 meses</h2><div class="mon">${mons.map(m=>`<div><div class="p"><i title="Receitas ${R(m.r)}" style="height:${m.r/mx*100}%;background:var(--rc)"></i><i title="Despesas ${R(m.d)}" style="height:${m.d/mx*100}%;background:var(--ds)"></i></div>${m.l}</div>`).join('')}</div>
+ <small style="color:var(--mu)">Verde: receitas · Rosa: despesas</small></div></div>
+ <div class="card"><h2>Contas a pagar</h2>${pend.length?pend.map(x=>`<div class="row" style="justify-content:space-between;margin:0"><span>${x.date.split('-').reverse().join('/')} · ${esc(x.desc)}</span><span><b>${R(x.amount)}</b> <button class="btn g" onclick="pay(${x.id})">Marcar como paga</button></span></div>`).join(''):'<div class="empty">Nada pendente.</div>'}</div>`;
+}
+function pay(id){const t=S.tx.find(x=>x.id===id);t.paid=true;FB.txSet(t);draw()}
+function lanc(){
+ const e=edit?S.tx.find(x=>x.id===edit):null,ty=e?e.type:'despesa';
+ const list=S.tx.filter(x=>(!F.q||x.desc.toLowerCase().includes(F.q.toLowerCase()))&&(!F.type||x.type===F.type)&&(!F.cat||x.cat===F.cat)&&(!F.tag||x.tags.includes(F.tag))&&(!F.acc||x.acc===F.acc)&&(!F.m||ym(x.date)===F.m)).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+ const allCats=[...new Set(Object.values(S.cats).flat())];
+ return `<div class="card"><h2>${e?'Editar lançamento':'Novo lançamento'}</h2>
+ <div class="row"><label>Tipo<select id="f-type" onchange="typeChange()">${['despesa','receita','investimento'].map(k=>`<option value="${k}" ${k===ty?'selected':''}>${TN[k]}</option>`).join('')}</select></label>
+ <label style="flex:1;min-width:150px">Descrição<input id="f-desc" value="${e?esc(e.desc):''}" placeholder="Ex.: Supermercado"></label>
+ <label>Valor (R$)<input id="f-amt" type="number" step="0.01" min="0" style="width:110px" value="${e?e.amount:''}"></label>
+ <label>Data<input id="f-date" type="date" value="${e?e.date:today}"></label></div>
+ <div class="row"><label>Categoria<select id="f-cat"></select></label><label>Conta<select id="f-acc">${opts(S.accs,e&&e.acc)}</select></label>
+ <label>Situação<select id="f-paid"><option value="1">Paga/recebida</option><option value="0" ${e&&!e.paid?'selected':''}>Pendente</option></select></label></div>
+ <label>Tags</label><div class="chips" style="margin:4px 0 12px">${S.tags.map(t=>`<label><input type="checkbox" class="f-tag" value="${esc(t)}" ${e&&e.tags.includes(t)?'checked':''}>${esc(t)}</label>`).join('')||'<span class="empty">Crie tags em Ajustes.</span>'}</div>
+ <button class="btn" onclick="saveTx()">${e?'Salvar alterações':'Adicionar'}</button> ${e?'<button class="btn g" onclick="edit=null;draw()">Cancelar</button>':''}</div>
+ <div class="card"><h2>Filtros</h2><div class="row">
+ <label>Busca<input value="${esc(F.q)}" oninput="F.q=this.value;fl()" placeholder="descrição"></label>
+ <label>Tipo<select onchange="F.type=this.value;fl()">${['','receita','despesa','investimento'].map(k=>`<option value="${k}" ${F.type===k?'selected':''}>${k?TN[k]:'Todos'}</option>`).join('')}</select></label>
+ <label>Categoria<select onchange="F.cat=this.value;fl()">${opts(allCats,F.cat,'Todas')}</select></label>
+ <label>Tag<select onchange="F.tag=this.value;fl()">${opts(S.tags,F.tag,'Todas')}</select></label>
+ <label>Conta<select onchange="F.acc=this.value;fl()">${opts(S.accs,F.acc,'Todas')}</select></label>
+ <label>Mês<input type="month" value="${F.m}" onchange="F.m=this.value;fl()"></label>
+ <button class="btn g" onclick="F={q:'',type:'',cat:'',tag:'',acc:'',m:''};draw()">Limpar</button></div></div>
+ <div class="card" id="list">${table(list)}</div>`;
+}
+function fl(){const q=F.q;const keep=document.activeElement;const p=lanc();$('#app').innerHTML=p;typeChange(true);if(keep&&keep.tagName==='INPUT'&&keep.placeholder){const n=$('input[placeholder="descrição"]');n.focus();n.setSelectionRange(q.length,q.length)}}
+function table(l){
+ const r=sum(l,'receita'),d=sum(l,'despesa'),i=sum(l,'investimento');
+ if(!l.length)return '<div class="empty">Nenhum lançamento encontrado. Adicione o primeiro acima.</div>';
+ return `<div style="margin-bottom:8px">${l.length} lançamentos · <span class="receita">${R(r)}</span> · <span class="despesa">${R(d)}</span> · <span class="investimento">${R(i)}</span></div>
+ <div class="tb"><table><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tags</th><th>Conta</th><th>Valor</th><th></th></tr>
+ ${l.map(x=>`<tr><td>${x.date.split('-').reverse().join('/')}</td><td>${esc(x.desc)}${x.paid?'':' <span class="tag" style="color:var(--wn)">pendente</span>'}</td><td>${esc(x.cat)}</td><td>${x.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</td><td>${esc(x.acc)}</td><td class="${x.type}"><b>${x.type==='receita'?'+':'−'}${R(x.amount)}</b></td>
+ <td style="white-space:nowrap"><button class="x" title="Editar" onclick="edit=${x.id};draw();scrollTo(0,0)">✎</button><button class="x" title="Excluir" onclick="delTx(${x.id})">🗑</button></td></tr>`).join('')}</table></div>`;
+}
+function typeChange(init){
+ const ty=$('#f-type').value,e=edit?S.tx.find(x=>x.id===edit):null;
+ $('#f-cat').innerHTML=opts(S.cats[ty],e&&e.type===ty?e.cat:'');
+}
+function saveTx(){
+ const amt=parseFloat($('#f-amt').value),desc=$('#f-desc').value.trim();
+ if(!desc||!(amt>0)){msg('Informe a descrição e um valor maior que zero.');return}
+ const o={type:$('#f-type').value,desc,amount:amt,date:$('#f-date').value||today,cat:$('#f-cat').value,acc:$('#f-acc').value,paid:$('#f-paid').value==='1',tags:[...document.querySelectorAll('.f-tag:checked')].map(c=>c.value)};
+ const id=edit||Date.now();edit=null;const t={id,...o},k=S.tx.findIndex(x=>x.id===id);if(k>=0)S.tx[k]=t;else S.tx.push(t);FB.txSet(t);draw();
+}
+function delTx(id){ask('Excluir este lançamento?',()=>{S.tx=S.tx.filter(x=>x.id!==id);FB.txDel(id);draw()})}
+function inv(){
+ const all=S.tx.filter(x=>x.type==='investimento'),tot=all.reduce((s,x)=>s+x.amount,0),by={};
+ all.forEach(x=>{(x.tags.length?x.tags:['Sem tag']).forEach(t=>by[t]=(by[t]||0)+x.amount/(x.tags.length||1))});
+ const bl=Object.entries(by).sort((a,b)=>b[1]-a[1]),list=all.filter(x=>!itag||x.tags.includes(itag)).sort((a,b)=>b.date.localeCompare(a.date));
+ const mo=sum(all.filter(x=>ym(x.date)===M),'investimento');
+ return `<div class="grid"><div class="kpi" style="border-left-color:var(--iv)"><small>Total investido</small><b class="investimento">${R(tot)}</b></div>
+ <div class="kpi"><small>Aportes no mês ${M.split('-').reverse().join('/')}</small><b>${R(mo)}</b></div><div class="kpi"><small>Nº de aportes</small><b>${all.length}</b></div></div>
+ <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Carteira por tag</h2><button class="btn" onclick="edit=null;F.type='investimento';go('lanc');$('#f-type').value='investimento';typeChange()">Novo aporte</button></div>
+ ${bl.length?bl.map(([t,v])=>`<div>${esc(t)} <span style="float:right"><b>${R(v)}</b> · ${(v/tot*100).toFixed(1)}%</span><div class="bar"><i style="width:${v/tot*100}%;background:var(--iv)"></i></div></div>`).join(''):'<div class="empty">Registre um lançamento do tipo Investimento e use tags (Ações, FIIs, Renda fixa…) para ver a distribuição.</div>'}</div>
+ <div class="card"><h2>Aportes</h2><div class="row"><label>Filtrar por tag<select onchange="itag=this.value;draw()">${opts(S.tags,itag,'Todas')}</select></label></div>${table(list)}</div>`;
+}
+function orc(){
+ const t=S.tx.filter(x=>ym(x.date)===M&&x.type==='despesa'),sp={};t.forEach(x=>sp[x.cat]=(sp[x.cat]||0)+x.amount);
+ return `<div class="row">${monthPick()}</div><div class="card"><h2>Limite mensal por categoria</h2>
+ ${S.cats.despesa.map((c,i)=>{const l=S.budgets[c]||0,s=sp[c]||0,p=l?Math.min(100,s/l*100):0;
+ return `<div class="row" style="justify-content:space-between;margin:0"><span>${esc(c)}</span><span>${R(s)} de <input type="number" min="0" step="10" value="${l||''}" placeholder="limite" style="width:100px" onchange="S.budgets[S.cats.despesa[${i}]]=+this.value;save();draw()"></span></div>
+ <div class="bar"><i style="width:${p}%;background:${s>l&&l?'var(--ds)':'var(--ac)'}"></i></div>`}).join('')}</div>`;
+}
+function metas(){
+ return `<div class="card"><h2>Nova meta</h2><div class="row"><label>Nome<input id="g-n" placeholder="Ex.: Viagem"></label><label>Valor alvo (R$)<input id="g-t" type="number" min="0" step="100"></label><button class="btn" onclick="addGoal()">Criar meta</button></div></div>
+ ${S.goals.length?S.goals.map((g,i)=>{const p=Math.min(100,g.saved/g.target*100);return `<div class="card"><div class="row" style="justify-content:space-between;margin:0"><b>${esc(g.name)}</b><span>${R(g.saved)} de ${R(g.target)} (${p.toFixed(0)}%)</span></div><div class="bar"><i style="width:${p}%"></i></div>
+ <button class="btn g" onclick="dep(${i})">Adicionar valor</button> <button class="btn g" onclick="S.goals.splice(${i},1);save();draw()">Excluir</button></div>`}).join(''):'<div class="empty">Crie metas como reserva de emergência, viagem ou compra de um bem.</div>'}`;
+}
+function addGoal(){const n=$('#g-n').value.trim(),t=parseFloat($('#g-t').value);if(!n||!(t>0)){msg('Informe o nome e o valor alvo.');return}S.goals.push({name:n,target:t,saved:0});save();draw()}
+function dep(i){ask('Quanto adicionar à meta? (use negativo para retirar)',v=>{S.goals[i].saved=Math.max(0,S.goals[i].saved+v);save();draw()},1)}
+const get=p=>p.split('.').reduce((o,k)=>o[k],S);
+function ed(title,p){const a=get(p);return `<div class="card"><h2>${title}</h2><div class="chips" style="margin-bottom:10px">${a.map((x,i)=>`<span class="tag">${esc(x)} <button class="x" style="font-size:12px;color:inherit" title="Remover" onclick="rm('${p}',${i})">✕</button></span>`).join('')}</div>
+ <div class="row"><input id="n-${p}" placeholder="Novo item"><button class="btn" onclick="add('${p}')">Adicionar</button></div></div>`}
+function add(p){const v=document.getElementById('n-'+p).value.trim();if(v&&!get(p).includes(v)){get(p).push(v);save();draw()}}
+function rm(p,i){ask('Remover este item? Lançamentos antigos mantêm o nome.',()=>{get(p).splice(i,1);save();draw()})}
+function cfg(){
+ return `<div class="two">${ed('Categorias de despesa','cats.despesa')}${ed('Categorias de receita','cats.receita')}${ed('Tags (tipos de investimento e outros)','tags')}${ed('Contas e cartões','accs')}</div>
+ <div class="card"><h2>Backup dos dados</h2><p style="color:var(--mu);margin-top:0">Seus dados ficam salvos na sua conta Google (Firebase) e sincronizam entre aparelhos. O backup é opcional.</p>
+ <button class="btn" onclick="expJ()">Exportar backup (JSON)</button> <button class="btn g" onclick="expC()">Exportar lançamentos (CSV)</button>
+ <label class="btn g" style="display:inline-block;cursor:pointer">Importar backup<input type="file" accept=".json" hidden onchange="impJ(this.files[0])"></label>
+ <button class="btn g" style="color:var(--ds)" onclick="ask('Apagar TODOS os dados?',()=>{FB.txBatch(S.tx,true);S=structuredClone(DEF);save();draw()})">Apagar tudo</button></div>`;
+}
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
+const expJ=()=>dl('financas-backup.json',JSON.stringify(S),'application/json');
+const expC=()=>dl('lancamentos.csv','\ufeffdata;tipo;descricao;categoria;conta;tags;valor;paga\n'+S.tx.map(x=>[x.date,x.type,'"'+x.desc.replace(/"/g,'""')+'"',x.cat,x.acc,x.tags.join('|'),String(x.amount).replace('.',','),x.paid?'sim':'nao'].join(';')).join('\n'),'text/csv');
+function impJ(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.tx||!d.cats)throw 0;S={...structuredClone(DEF),...d};save();FB.txBatch(d.tx);draw()}catch(e){msg('Arquivo inválido.')}};r.readAsText(f)}
+function closeOv(){const o=$('#ov');o.style.display='none';o.innerHTML=''}
+function ask(m,ok,inp){const o=$('#ov');o.innerHTML=`<div class="mod" role="dialog"><p>${esc(m)}</p>${inp?'<input id="ov-i" type="number" step="0.01" style="width:100%;margin-bottom:12px">':''}<div class="row" style="justify-content:flex-end;margin:0">${ok?'<button class="btn g" id="ov-n">Cancelar</button>':''}<button class="btn" id="ov-y">${ok?'Confirmar':'OK'}</button></div></div>`;o.style.display='flex';if(ok)$('#ov-n').onclick=closeOv;$('#ov-y').onclick=()=>{const v=inp?parseFloat($('#ov-i').value):0;closeOv();if(ok&&!(inp&&isNaN(v)))ok(v)};(inp?$('#ov-i'):$('#ov-y')).focus()}
+const msg=m=>ask(m);
+function show(t,txt){const o=$('#ov');o.innerHTML=`<div class="mod" role="dialog"><p><b>${esc(t)}</b><br><small>Copie o texto abaixo e salve em um arquivo no seu computador.</small></p><textarea id="ov-t" readonly style="width:100%;height:160px;background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:8px;margin-bottom:12px"></textarea><div class="row" style="justify-content:flex-end;margin:0"><button class="btn g" id="ov-n">Fechar</button><button class="btn" id="ov-y">Copiar</button></div></div>`;o.style.display='flex';const ta=$('#ov-t');ta.value=txt;ta.select();$('#ov-n').onclick=closeOv;$('#ov-y').onclick=()=>{ta.select();try{navigator.clipboard.writeText(txt)}catch(e){document.execCommand('copy')}}}
+const quiet=()=>{const a=document.activeElement;if(USER&&!(a&&/^(f-|g-|n-)/.test(a.id)))draw()};
+const loginView=()=>`<div class="card" style="max-width:420px;margin:40px auto;text-align:center"><h2>Entrar</h2><p style="color:var(--mu)">${window.FBMISSING?'Firebase ainda não configurado. Preencha o arquivo firebase-config.js (veja o README).':'Seus dados ficam salvos na sua conta Google, só você acessa.'}</p><button class="btn" onclick="FB.login()">Entrar com Google</button></div>`;
+window.addEventListener('fb-user',e=>{USER=e.detail;if(!USER)S=structuredClone(DEF);draw()});
+window.addEventListener('fb-cfg',e=>{const c=e.detail;if(!c){save();return}Object.assign(S,{cats:c.cats||S.cats,tags:c.tags||S.tags,accs:c.accs||S.accs,budgets:c.budgets||{},goals:c.goals||[]});quiet()});
+window.addEventListener('fb-tx',e=>{S.tx=e.detail;quiet()});
+draw();
+</script>
+<script type="module" src="./firebase-config.js"></script>
+</body>
+</html>
