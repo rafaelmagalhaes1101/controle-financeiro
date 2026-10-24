@@ -39,8 +39,28 @@ th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--ln);font-siz
 .chips{display:flex;gap:6px;flex-wrap:wrap}.chips label{flex-direction:row;align-items:center;gap:4px;font-size:13px;color:var(--tx);background:var(--bg);border:1px solid var(--ln);border-radius:20px;padding:3px 10px}
 .mon{display:flex;gap:10px;align-items:end;height:130px}.mon div{flex:1;text-align:center;font-size:11px;color:var(--mu)}
 .mon .p{display:flex;gap:3px;align-items:end;height:100px;justify-content:center}.mon .p i{width:40%;max-width:22px;border-radius:4px 4px 0 0}
-.empty{color:var(--mu);padding:12px 0}.two{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.empty{color:var(--mu);padding:12px 0}.two{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))}
 #ov{display:none;position:fixed;inset:0;background:rgba(10,18,32,.55);z-index:20;align-items:center;justify-content:center;padding:16px}.mod{background:var(--sf);color:var(--tx);border:1px solid var(--ln);border-radius:10px;padding:16px;width:100%;max-width:420px}
+nav .ic,nav .sh{display:none}html{-webkit-text-size-adjust:100%}
+@media (max-width:720px){
+header .in{padding:10px 14px}h1{margin:0;font-size:17px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--sf);border-top:1px solid var(--ln);padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));gap:0;justify-content:space-around;z-index:10;overflow:visible}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px;font-size:10px;min-width:0}
+nav .ic{display:block;font-size:19px;line-height:1}nav .lg{display:none}nav .sh{display:block}nav .out{display:none}
+main{padding:12px 12px 96px}.card{padding:12px}
+.grid{grid-template-columns:1fr 1fr;gap:8px}.kpi b{font-size:17px}
+.row>label{flex:1 1 44%}.row>label input,.row>label select{width:100%!important}
+input,select{font-size:16px}.btn{min-height:42px}.row .btn{flex:1 1 auto}
+.x{padding:8px 12px;font-size:20px}
+.tb{overflow:visible}table{min-width:0}table tr:first-child{display:none}
+table,tbody,tr,td{display:block;width:100%}
+tr{border:1px solid var(--ln);border-radius:10px;padding:6px 10px;margin-bottom:10px}
+td{border:0;padding:3px 0;display:flex;justify-content:space-between;gap:12px;text-align:right}
+td::before{content:attr(data-l);color:var(--mu);font-size:12px;text-align:left}
+td.dsc{font-weight:700}td:last-child::before{content:none}td:last-child{justify-content:flex-end;gap:4px}
+td[data-l="Tags"]:empty{display:none}
+.mon{height:120px}.mod{max-width:100%}
+}
 </style>
 </head>
 <body>
@@ -58,14 +78,14 @@ let S=structuredClone(DEF),USER;
 const save=()=>{if(USER&&window.FB)FB.saveCfg({cats:S.cats,tags:S.tags,accs:S.accs,budgets:S.budgets,goals:S.goals})};
 const now=new Date(),ym=d=>d.slice(0,7),today=now.toISOString().slice(0,10);
 let tab='resumo',M=today.slice(0,7),F={q:'',type:'',cat:'',tag:'',acc:'',m:''},edit=null,itag='';
-const TABS=[['resumo','Resumo'],['lanc','Lançamentos'],['inv','Investimentos'],['orc','Orçamento'],['metas','Metas'],['cfg','Ajustes']];
+const TABS=[['resumo','Resumo','Resumo','📊'],['lanc','Lançamentos','Lançam.','🧾'],['inv','Investimentos','Invest.','📈'],['orc','Orçamento','Orçam.','🎯'],['metas','Metas','Metas','🏁'],['cfg','Ajustes','Ajustes','⚙️']];
 const TN={receita:'Receita',despesa:'Despesa',investimento:'Investimento'};
 const sum=(a,t)=>a.filter(x=>x.type===t).reduce((s,x)=>s+x.amount,0);
 const opts=(arr,sel,all)=>(all!==undefined?`<option value="">${all}</option>`:'')+arr.map(o=>`<option ${o===sel?'selected':''}>${esc(o)}</option>`).join('');
 function go(t){tab=t;draw()}
 function draw(){
  if(!USER){$('#nav').innerHTML='';$('#app').innerHTML=USER===undefined?'<div class="empty">Carregando…</div>':loginView();return}
- $('#nav').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')">${l}</button>`).join('')+`<button style="margin-left:auto" onclick="FB.logout()">Sair</button>`;
+ $('#nav').innerHTML=TABS.map(([k,l,sh,ic])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')"><span class="ic">${ic}</span><span class="lg">${l}</span><span class="sh">${sh}</span></button>`).join('')+`<button class="out" style="margin-left:auto" onclick="FB.logout()">Sair</button>`;
  $('#app').innerHTML=({resumo,lanc,inv,orc,metas,cfg})[tab]();
  if(tab==='lanc')typeChange(true);
 }
@@ -120,7 +140,7 @@ function table(l){
  if(!l.length)return '<div class="empty">Nenhum lançamento encontrado. Adicione o primeiro acima.</div>';
  return `<div style="margin-bottom:8px">${l.length} lançamentos · <span class="receita">${R(r)}</span> · <span class="despesa">${R(d)}</span> · <span class="investimento">${R(i)}</span></div>
  <div class="tb"><table><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tags</th><th>Conta</th><th>Valor</th><th></th></tr>
- ${l.map(x=>`<tr><td>${x.date.split('-').reverse().join('/')}</td><td>${esc(x.desc)}${x.paid?'':' <span class="tag" style="color:var(--wn)">pendente</span>'}</td><td>${esc(x.cat)}</td><td>${x.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</td><td>${esc(x.acc)}</td><td class="${x.type}"><b>${x.type==='receita'?'+':'−'}${R(x.amount)}</b></td>
+ ${l.map(x=>`<tr><td data-l="Data">${x.date.split('-').reverse().join('/')}</td><td data-l="Descrição" class="dsc">${esc(x.desc)}${x.paid?'':' <span class="tag" style="color:var(--wn)">pendente</span>'}</td><td data-l="Categoria">${esc(x.cat)}</td><td data-l="Tags">${x.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</td><td data-l="Conta">${esc(x.acc)}</td><td data-l="Valor" class="${x.type}"><b>${x.type==='receita'?'+':'−'}${R(x.amount)}</b></td>
  <td style="white-space:nowrap"><button class="x" title="Editar" onclick="edit=${x.id};draw();scrollTo(0,0)">✎</button><button class="x" title="Excluir" onclick="delTx(${x.id})">🗑</button></td></tr>`).join('')}</table></div>`;
 }
 function typeChange(init){
@@ -165,7 +185,7 @@ function ed(title,p){const a=get(p);return `<div class="card"><h2>${title}</h2><
 function add(p){const v=document.getElementById('n-'+p).value.trim();if(v&&!get(p).includes(v)){get(p).push(v);save();draw()}}
 function rm(p,i){ask('Remover este item? Lançamentos antigos mantêm o nome.',()=>{get(p).splice(i,1);save();draw()})}
 function cfg(){
- return `<div class="two">${ed('Categorias de despesa','cats.despesa')}${ed('Categorias de receita','cats.receita')}${ed('Tags (tipos de investimento e outros)','tags')}${ed('Contas e cartões','accs')}</div>
+ return `<div class="card"><h2>Conta</h2>Conectado como <b>${esc(USER.email||'')}</b> <button class="btn g" style="margin-left:8px" onclick="FB.logout()">Sair</button></div><div class="two">${ed('Categorias de despesa','cats.despesa')}${ed('Categorias de receita','cats.receita')}${ed('Tags (tipos de investimento e outros)','tags')}${ed('Contas e cartões','accs')}</div>
  <div class="card"><h2>Backup dos dados</h2><p style="color:var(--mu);margin-top:0">Seus dados ficam salvos na sua conta Google (Firebase) e sincronizam entre aparelhos. O backup é opcional.</p>
  <button class="btn" onclick="expJ()">Exportar backup (JSON)</button> <button class="btn g" onclick="expC()">Exportar lançamentos (CSV)</button>
  <label class="btn g" style="display:inline-block;cursor:pointer">Importar backup<input type="file" accept=".json" hidden onchange="impJ(this.files[0])"></label>
