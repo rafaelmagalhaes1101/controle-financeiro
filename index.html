@@ -134,7 +134,7 @@ function lanc(){
  <label>Tag<select onchange="F.tag=this.value;fl()">${opts(S.tags,F.tag,'Todas')}</select></label>
  <label>Conta<select onchange="F.acc=this.value;fl()">${opts(S.accs,F.acc,'Todas')}</select></label>
  <label>Mês<input type="month" value="${F.m}" onchange="F.m=this.value;fl()"></label>
- <button class="btn g" onclick="F={q:'',type:'',cat:'',tag:'',acc:'',m:''};draw()">Limpar</button></div></div>
+ <button class="btn g" onclick="F={q:'',type:'',cat:'',tag:'',acc:'',m:''};draw()">Limpar filtros</button><button class="btn g" style="color:var(--ds)" onclick="clearAll()">🗑 Apagar todos os lançamentos</button></div></div>
  <div class="card" id="list">${table(list)}</div>`;
 }
 function fl(){const q=F.q;const keep=document.activeElement;const p=lanc();$('#app').innerHTML=p;typeChange(true);if(keep&&keep.tagName==='INPUT'&&keep.placeholder){const n=$('input[placeholder="descrição"]');n.focus();n.setSelectionRange(q.length,q.length)}}
@@ -156,6 +156,8 @@ function saveTx(){
  const o={type:$('#f-type').value,desc,amount:amt,date:$('#f-date').value||today,cat:$('#f-cat').value,acc:$('#f-acc').value,paid:$('#f-paid').value==='1',tags:[...document.querySelectorAll('.f-tag:checked')].map(c=>c.value)};
  const id=edit||Date.now();edit=null;const t={id,...o},k=S.tx.findIndex(x=>x.id===id);if(k>=0)S.tx[k]=t;else S.tx.push(t);FB.txSet(t);draw();
 }
+function clearAll(){const n=S.tx.length;if(!n){msg('Não há lançamentos para apagar.');return}
+ ask(`Apagar TODOS os ${n} lançamentos? Categorias, tags, contas e metas são mantidas. Não dá para desfazer (dica: exporte um backup em Ajustes antes).`,()=>{FB.txBatch(S.tx,true);S.tx=[];edit=null;draw()})}
 function delTx(id){ask('Excluir este lançamento?',()=>{S.tx=S.tx.filter(x=>x.id!==id);FB.txDel(id);draw()})}
 function inv(){
  const all=S.tx.filter(x=>x.type==='investimento'||x.type==='resgate'),sg=x=>x.type==='resgate'?-x.amount:x.amount,tot=all.reduce((s,x)=>s+sg(x),0),ap=sum(all,'investimento'),rs=sum(all,'resgate'),by={};
