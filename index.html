@@ -73,11 +73,11 @@ td[data-l="Tags"]:empty{display:none}
 const KEY='financas-v1',$=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const R=v=>(+v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const DEF={tx:[],goals:[],budgets:{},rules:{},prods:[{tag:'Renda fixa',cdi:101.5}],cdiAA:13.65,
+const DEF={tx:[],goals:[],budgets:{},rules:{},prods:[{tag:'Renda fixa',cdi:101.5}],cdiAA:13.65,openBal:0,
 cats:{despesa:['Moradia','Mercado','Transporte','Saúde','Lazer','Educação','Contas fixas','Outros'],receita:['Salário','Freelance','Rendimentos','Outros'],investimento:['Aporte'],resgate:['Resgate']},
 tags:['Renda fixa','Ações','FIIs','Cripto','Reserva de emergência','Exterior'],accs:['Conta corrente','Cartão de crédito','Dinheiro','Corretora']};
 let S=structuredClone(DEF),USER;
-const save=()=>{if(USER&&window.FB)FB.saveCfg({cats:S.cats,tags:S.tags,accs:S.accs,budgets:S.budgets,goals:S.goals,rules:S.rules,prods:S.prods,cdiAA:S.cdiAA})};
+const save=()=>{if(USER&&window.FB)FB.saveCfg({cats:S.cats,tags:S.tags,accs:S.accs,budgets:S.budgets,goals:S.goals,rules:S.rules,prods:S.prods,cdiAA:S.cdiAA,openBal:S.openBal})};
 const now=new Date(),ym=d=>d.slice(0,7),today=now.toISOString().slice(0,10);
 let tab='resumo',M=today.slice(0,7),F={q:'',type:'',cat:'',tag:'',acc:'',m:''},edit=null,itag='';
 const TABS=[['resumo','Resumo','Resumo','📊'],['lanc','Lançamentos','Lançam.','🧾'],['inv','Investimentos','Invest.','📈'],['orc','Orçamento','Orçam.','🎯'],['metas','Metas','Metas','🏁'],['cfg','Ajustes','Ajustes','⚙️']];
@@ -105,7 +105,8 @@ function resumo(){
  <div class="grid"><div class="kpi" style="border-left-color:var(--rc)"><small>Receitas</small><b class="receita">${R(r)}</b></div>
  <div class="kpi" style="border-left-color:var(--ds)"><small>Despesas</small><b class="despesa">${R(d)}</b></div>
  <div class="kpi" style="border-left-color:var(--iv)"><small>Investido</small><b class="investimento">${R(i)}</b>${rg?`<small>resgates: ${R(rg)}</small>`:''}</div>
- <div class="kpi" style="border-left-color:var(--ac)"><small>Saldo do mês</small><b>${R(r-d-i+rg)}</b></div></div>
+ <div class="kpi" style="border-left-color:var(--ac)"><small>Saldo do mês</small><b>${R(r-d-i+rg)}</b></div>
+ <div class="kpi"><small>Saldo em conta (todos os meses)</small><b>${R((S.openBal||0)+sum(S.tx,'receita')-sum(S.tx,'despesa')-sum(S.tx,'investimento')+sum(S.tx,'resgate'))}</b></div></div>
  ${over.length?`<div class="card" style="border-color:var(--wn)"><b style="color:var(--wn)">Atenção:</b> orçamento estourado em ${over.map(([c])=>esc(c)).join(', ')}.</div>`:''}
  <div class="two"><div class="card"><h2>Despesas por categoria</h2>${cl.length?cl.map(([c,v])=>`<div>${esc(c)} <b style="float:right">${R(v)}</b><div class="bar"><i style="width:${v/d*100}%;background:var(--ds)"></i></div></div>`).join(''):'<div class="empty">Nenhuma despesa neste mês.</div>'}</div>
  <div class="card"><h2>Últimos 6 meses</h2><div class="mon">${mons.map(m=>`<div><div class="p"><i title="Receitas ${R(m.r)}" style="height:${m.r/mx*100}%;background:var(--rc)"></i><i title="Despesas ${R(m.d)}" style="height:${m.d/mx*100}%;background:var(--ds)"></i></div>${m.l}</div>`).join('')}</div>
@@ -188,7 +189,7 @@ function ed(title,p){const a=get(p);return `<div class="card"><h2>${title}</h2><
 function add(p){const v=document.getElementById('n-'+p).value.trim();if(v&&!get(p).includes(v)){get(p).push(v);save();draw()}}
 function rm(p,i){ask('Remover este item? Lançamentos antigos mantêm o nome.',()=>{get(p).splice(i,1);save();draw()})}
 function cfg(){
- return `<div class="card"><h2>Conta</h2>Conectado como <b>${esc(USER.email||'')}</b> <button class="btn g" style="margin-left:8px" onclick="FB.logout()">Sair</button></div><div class="two">${ed('Categorias de despesa','cats.despesa')}${ed('Categorias de receita','cats.receita')}${ed('Tags (tipos de investimento e outros)','tags')}${ed('Contas e cartões','accs')}</div>
+ return `<div class="card"><h2>Conta</h2>Conectado como <b>${esc(USER.email||'')}</b> <button class="btn g" style="margin-left:8px" onclick="FB.logout()">Sair</button></div><div class="card"><h2>Saldo inicial em conta</h2><p style="color:var(--mu);margin-top:0">Use só se você não importar o histórico completo: informe o saldo que a conta tinha antes do primeiro lançamento cadastrado. Ele entra no “Saldo em conta” do Resumo.</p><div class="row"><label>Saldo inicial (R$)<input type="number" step="0.01" value="${S.openBal||''}" onchange="S.openBal=+this.value||0;save();draw()"></label></div></div><div class="two">${ed('Categorias de despesa','cats.despesa')}${ed('Categorias de receita','cats.receita')}${ed('Tags (tipos de investimento e outros)','tags')}${ed('Contas e cartões','accs')}</div>
  <div class="card"><h2>Backup dos dados</h2><p style="color:var(--mu);margin-top:0">Seus dados ficam salvos na sua conta Google (Firebase) e sincronizam entre aparelhos. O backup é opcional.</p>
  <button class="btn" onclick="expJ()">Exportar backup (JSON)</button> <button class="btn g" onclick="expC()">Exportar lançamentos (CSV)</button>
  <label class="btn g" style="display:inline-block;cursor:pointer">Importar backup<input type="file" accept=".json" hidden onchange="impJ(this.files[0])"></label>
@@ -298,7 +299,7 @@ function prodRow(p,i){return `<div class="row"><label>Tag do produto<select onch
 const quiet=()=>{const a=document.activeElement;if(USER&&!(a&&/^(f-|g-|n-)/.test(a.id)))draw()};
 const loginView=()=>`<div class="card" style="max-width:420px;margin:40px auto;text-align:center"><h2>Entrar</h2><p style="color:var(--mu)">${window.FBMISSING?'Firebase ainda não configurado. Preencha o arquivo firebase-config.js (veja o README).':'Seus dados ficam salvos na sua conta Google, só você acessa.'}</p><button class="btn" onclick="FB.login()">Entrar com Google</button></div>`;
 window.addEventListener('fb-user',e=>{USER=e.detail;if(!USER)S=structuredClone(DEF);draw()});
-window.addEventListener('fb-cfg',e=>{const c=e.detail;if(!c){save();return}Object.assign(S,{cats:{...DEF.cats,...(c.cats||{})},tags:c.tags||S.tags,accs:c.accs||S.accs,budgets:c.budgets||{},goals:c.goals||[],rules:c.rules||{},prods:c.prods||structuredClone(DEF.prods),cdiAA:c.cdiAA||13.65});quiet()});
+window.addEventListener('fb-cfg',e=>{const c=e.detail;if(!c){save();return}Object.assign(S,{cats:{...DEF.cats,...(c.cats||{})},tags:c.tags||S.tags,accs:c.accs||S.accs,budgets:c.budgets||{},goals:c.goals||[],rules:c.rules||{},prods:c.prods||structuredClone(DEF.prods),cdiAA:c.cdiAA||13.65,openBal:c.openBal||0});quiet()});
 window.addEventListener('fb-tx',e=>{S.tx=e.detail;quiet()});
 draw();
 </script>
